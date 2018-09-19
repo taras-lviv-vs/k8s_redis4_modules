@@ -11,7 +11,9 @@ Useful reference, deployment of multi-node Redis in K8S: https://github.com/kube
 
   I was not able to compile the module on Alpine 3.8 due to compilation error. The most probable that this is due to musl glibc version in Alpines (vs. "standard" glibc).
   On Ubuntu 16.04/18.04 it compiled without any error, but the existing tests failed (66% of all the tests failed), maybe due to an unobvious dependency.
-  The only successful environment was a Debian 9 -based image from redislabsmodules. Image size ~625MB.
+  The only successful environment was a Debian 9 -based image from redislabsmodules (see https://github.com/RedisLabsModules/RediSearch/blob/master/Dockerfile, https://hub.docker.com/r/redislabs/redismod/~/dockerfile/). Image size ~625MB.
+
+  Quick start guide: https://oss.redislabs.com/redisearch/Quick\_Start/
 
 * `docker_runner/`
 
