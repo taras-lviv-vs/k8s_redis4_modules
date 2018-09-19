@@ -26,7 +26,7 @@ Commands
 * Local docker image with minikube: https://stackoverflow.com/questions/42564058/how-to-use-local-docker-images-with-minikube
 
   `eval $(minikube docker-env)`
-  You have to run eval $(minikube docker-env) on each terminal you want to use, since it only sets the environment variables for the current shell session.
+  You have to run eval on each terminal you want to use, since it only sets the environment variables for the current shell session.
 
 * Interact with a container:
   `kubectl exec redis-rgldw -i -t bash`
