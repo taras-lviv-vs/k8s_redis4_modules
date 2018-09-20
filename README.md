@@ -35,3 +35,17 @@ Commands
 * Interact with a container:
   `kubectl exec redis-rgldw -i -t bash`
 
+* Interact with redis over minikube: https://github.com/kubernetes/minikube/issues/211
+
+  ```
+  ➜  docker $(minikube ip)                    
+  zsh: command not found: 192.168.64.2
+  ➜  docker redis-cli -p 30001 -h 192.168.64.2
+  192.168.64.2:30001> 
+  ➜  docker kubectl get services
+  NAME             TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)           AGE
+  hello-node       LoadBalancer   10.97.41.78     <pending>     8080:30891/TCP    69d
+  kubernetes       ClusterIP      10.96.0.1       <none>        443/TCP           69d
+  redis-sentinel   NodePort       10.100.149.11   <none>        26379:30001/TCP   2m
+  ```
+
