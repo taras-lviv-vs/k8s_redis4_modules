@@ -38,14 +38,23 @@ Commands
 * Interact with redis over minikube: https://github.com/kubernetes/minikube/issues/211
 
   ```
-  ➜  docker $(minikube ip)                    
-  zsh: command not found: 192.168.64.2
+  ➜  docker minikube ip
+  192.168.64.2
   ➜  docker redis-cli -p 30001 -h 192.168.64.2
   192.168.64.2:30001> 
   ➜  docker kubectl get services
   NAME             TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)           AGE
-  hello-node       LoadBalancer   10.97.41.78     <pending>     8080:30891/TCP    69d
-  kubernetes       ClusterIP      10.96.0.1       <none>        443/TCP           69d
   redis-sentinel   NodePort       10.100.149.11   <none>        26379:30001/TCP   2m
+  ➜  docker kubectl port-forward redis-8kj72 16379:6379 
+  Forwarding from 127.0.0.1:16379 -> 6379
+  Forwarding from [::1]:16379 -> 6379
+  Handling connection for 16379
+  Handling connection for 16379
+  ➜  docker kubectl expose pod redis-8kj72 --type=NodePort 
+  service/redis-8kj72 exposed
+  ➜  docker kubectl get services
+  NAME             TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)           AGE
+  redis-8kj72      NodePort       10.99.129.248   <none>        6379:30542/TCP    8s
+  redis-sentinel   NodePort       10.100.149.11   <none>        26379:30001/TCP   22h
   ```
 
