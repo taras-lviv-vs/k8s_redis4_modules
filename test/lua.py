@@ -3,6 +3,11 @@ import json
 import pprint
 import sys
 
+# pip install redisearch
+import redisearch
+
+from string import Template
+
 from vidscale.cloudscale.core.lib.db.redis import RedisDatabase
 
 def init_db(db, orgs=100, accounts_per_org=1000):
@@ -27,22 +32,44 @@ def init_db(db, orgs=100, accounts_per_org=1000):
     # System exit
     sys.exit(0)
 
-def build_index(db):
+def build_index(db, host, port):
     # build redisearch index
-    pass
+    keys = db.redis.keys('account_id:*')
+    if not keys:
+        return
 
-if __name__ == '__main__':
+    # create index
+    client = redisearch.Client('rsIndex', conn=db.redis)
+    client.create_index([redisearch.TextField('name', sortable=True)])
 
-    #from redis.sentinel import Sentinel
-    #sentinel = Sentinel([('192.168.64.2', 30001)], socket_timeout=0.1)
-    #master_host, master_port = sentinel.discover_master('mymaster')
+    for key in keys:
+        doc_string = db.redis.get(key)
+        doc = json.loads(doc_string)
+        # index the document
+        client.add_document('_id:{}'.format(key), name=doc['name'])
 
-    master_host, master_port = ('192.168.64.2', 30542)
-    redis_conf = dict(host=master_host, port=master_port, db=0)
-    db = RedisDatabase(redis_conf)
-    #init_db(db.redis)
+def run_rs_query(db, sort_data=True):
+    #query = redisearch.Query('myaccount*').verbatim().sort_by('name', asc=False).paging(20, 20)
 
-    script = \
+    client = redisearch.Client('rsIndex', conn=db.redis)
+    query = redisearch.Query('myaccount').verbatim().in_order()
+    if sort_data:
+        query = query.sort_by('name', asc=True)
+    query = query.paging(20, 20)
+    res = client.search(query)
+
+    keys = []
+    for doc in res.docs:
+        key = doc.id.lstrip('_id:')
+        keys.append(key)
+
+    docs = []
+    if keys:
+        docs = db.redis.mget(keys)
+    return docs
+
+def run_lua(db, sort_data=True):
+    template_string = \
         """
         -- function for paging;
         local cs = {}
@@ -71,7 +98,7 @@ if __name__ == '__main__':
 
         -- Sorting takes ~60-70% of the whole execution time;
         -- Compare 40s vs 18s on 100k documents
-        table.sort(results, cs.compare)
+        ${sortComment}table.sort(results, cs.compare)
 
         -- Filter by internal fields;
         local filtered_results = {};
@@ -85,7 +112,33 @@ if __name__ == '__main__':
         return cs.slice(filtered_results, 20, 20)
         """
 
-    #import pdb; pdb.set_trace()
+    template_obj = Template(template_string)
+    if sort_data:
+        script = template_obj.substitute(sortComment='')
+    else:
+        script = template_obj.substitute(sortComment='--')
+
     results = db.redis.eval(script, numkeys=0)
+    return results
+
+if __name__ == '__main__':
+
+    #from redis.sentinel import Sentinel
+    #sentinel = Sentinel([('192.168.64.2', 30001)], socket_timeout=0.1)
+    #master_host, master_port = sentinel.discover_master('mymaster')
+
+    master_host, master_port = ('192.168.64.2', 30542)
+    redis_conf = dict(host=master_host, port=master_port, db=0)
+    db = RedisDatabase(redis_conf)
+    #init_db(db.redis)
+
+    #pprint.pprint('lua:')
+    #results = run_lua(db, sort_data=True)
+    #pprint.pprint(results)
+
+    pprint.pprint('redisearch:')
+    #build_index(db, master_host, master_port)
+    results = run_rs_query(db, sort_data=True)
     pprint.pprint(results)
+
 
