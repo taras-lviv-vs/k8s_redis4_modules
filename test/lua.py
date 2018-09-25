@@ -139,13 +139,18 @@ if __name__ == '__main__':
     db = RedisDatabase(redis_conf)
     #init_db(db.redis)
 
+    t1 = time.time()
     pprint.pprint('lua:')
     results = run_lua(db, sort_data=True)
     pprint.pprint(results)
+    pprint.pprint('LUA taken {}s'.format(time.time() - t1))
+
+    t2 = time.time()
 
     pprint.pprint('redisearch:')
-    build_index(db, master_host, master_port)
+    #build_index(db, master_host, master_port)
     results = run_rs_query(db, sort_data=True)
     pprint.pprint(results)
+    pprint.pprint('Redisearch taken {}s'.format(time.time() - t2))
 
 
