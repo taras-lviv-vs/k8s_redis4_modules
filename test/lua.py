@@ -2,6 +2,7 @@ import copy
 import json
 import pprint
 import sys
+import time
 
 # pip install redisearch
 import redisearch
@@ -76,6 +77,59 @@ def run_rs_query(db, sort_data=True):
     return docs
 
 def run_lua(db, sort_data=True):
+    template_string = \
+        """
+        -- function for paging;
+        local cs = {}
+        function cs.slice(tbl, offset, page_size)
+            local sliced = {}
+            for i = offset,offset + page_size - 1 do
+               table.insert(sliced, tbl[i])
+            end
+            return sliced
+        end;
+
+        -- function to define sorting by field;
+        function cs.compare(elem1, elem2)
+            return elem1:match('"name": "[%a%d ]+"') > elem2:match('"name": "[%a%d ]+"')
+            -- < ASC
+            -- > DESC
+        end;
+
+        -- Get all resources filtered by fields in "key";
+        local keys = redis.call('KEYS', 'account_id:*');
+        local results = {};
+        for i, key in pairs(keys) do
+            local res = redis.call('GET', key)
+            table.insert(results, res)
+        end;
+
+        -- Sorting takes ~60-70% of the whole execution time;
+        -- Compare 40s vs 18s on 100k documents
+        ${sortComment}table.sort(results, cs.compare)
+
+        -- Filter by internal fields;
+        local filtered_results = {};
+        for i, res in pairs(results) do
+            if res:match('"name": "my%a+ %d+"') then
+                table.insert(filtered_results, res)
+            end;
+        end;
+
+        -- OFFSET and LIMIT;
+        return cs.slice(filtered_results, 21, 10)
+        """
+
+    template_obj = Template(template_string)
+    if sort_data:
+        script = template_obj.substitute(sortComment='')
+    else:
+        script = template_obj.substitute(sortComment='--')
+
+    results = db.redis.eval(script, numkeys=0)
+    return results
+
+def run_lua_with_json(db, sort_data=True):
     template_string = \
         """
         -- function for paging;
