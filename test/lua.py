@@ -15,13 +15,15 @@ def init_db(db, orgs=100, accounts_per_org=1000):
     json_tmpl = dict(name='default_name',
                      account_id=0,
                      org_id=0)
-    account_name_tmpl = 'myaccount_{}'
+    account_name_tmpl = 'myaccount {}'
     account_id = 1
     for org in range(orgs):
         org_id = org + 1
         for account in range(accounts_per_org):
             doc = copy.deepcopy(json_tmpl)
             doc['name'] = account_name_tmpl.format(account_id)
+            doc['desc'] = account_name_tmpl.format(account_id)
+            doc['info'] = account_name_tmpl.format(account_id)
             doc['account_id'] = account_id
             doc['org_id'] = org_id
             db.set(key_tmpl.format(account_id, org_id),
@@ -40,22 +42,27 @@ def build_index(db, host, port):
 
     # create index
     client = redisearch.Client('rsIndex', conn=db.redis)
-    client.create_index([redisearch.TextField('name', sortable=True)])
+    client.create_index([redisearch.TextField('name_sortable', sortable=True),
+                         redisearch.TextField('desc_unsortable', sortable=False),
+                         redisearch.TextField('info_nostem', no_stem=True)])
 
     for key in keys:
         doc_string = db.redis.get(key)
         doc = json.loads(doc_string)
         # index the document
-        client.add_document('_id:{}'.format(key), name=doc['name'])
+        client.add_document('_id:{}'.format(key),
+                            name_sortable=doc['name'],
+                            desc_unsortable=doc['desc'],
+                            info_nostem=doc['info'])
 
 def run_rs_query(db, sort_data=True):
-    #query = redisearch.Query('myaccount*').verbatim().sort_by('name', asc=False).paging(20, 20)
+    #client.search(redisearch.Query('@name_sortable:myaccount').sort_by('name_sortable', asc=True).paging(0, 20)).docs
 
     client = redisearch.Client('rsIndex', conn=db.redis)
-    query = redisearch.Query('myaccount').verbatim().in_order()
+    query = redisearch.Query('@name_sortable:myaccount')
     if sort_data:
-        query = query.sort_by('name', asc=True)
-    query = query.paging(20, 20)
+        query = query.sort_by('name_sortable', asc=False)
+    query = query.paging(20, 10)
     res = client.search(query)
 
     keys = []
@@ -83,7 +90,7 @@ def run_lua(db, sort_data=True):
 
         -- function to define sorting by field;
         function cs.compare(elem1, elem2)
-            return elem1:match('"name": "%a+_%d+"') > elem2:match('"name": "%a+_%d+"')
+            return elem1:match('"name": "[%a%d ]+"') > elem2:match('"name": "[%a%d ]+"')
             -- < ASC
             -- > DESC
         end;
@@ -103,13 +110,13 @@ def run_lua(db, sort_data=True):
         -- Filter by internal fields;
         local filtered_results = {};
         for i, res in pairs(results) do
-            if res:match('"name": "my%a+_%d+"') then
+            if res:match('"name": "my%a+ %d+"') then
                 table.insert(filtered_results, res)
             end;
         end;
 
         -- OFFSET and LIMIT;
-        return cs.slice(filtered_results, 20, 20)
+        return cs.slice(filtered_results, 21, 10)
         """
 
     template_obj = Template(template_string)
@@ -132,12 +139,12 @@ if __name__ == '__main__':
     db = RedisDatabase(redis_conf)
     #init_db(db.redis)
 
-    #pprint.pprint('lua:')
-    #results = run_lua(db, sort_data=True)
-    #pprint.pprint(results)
+    pprint.pprint('lua:')
+    results = run_lua(db, sort_data=True)
+    pprint.pprint(results)
 
     pprint.pprint('redisearch:')
-    #build_index(db, master_host, master_port)
+    build_index(db, master_host, master_port)
     results = run_rs_query(db, sort_data=True)
     pprint.pprint(results)
 
