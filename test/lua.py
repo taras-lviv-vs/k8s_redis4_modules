@@ -202,7 +202,7 @@ if __name__ == '__main__':
     #sentinel = Sentinel([('192.168.64.2', 30001)], socket_timeout=0.1)
     #master_host, master_port = sentinel.discover_master('mymaster')
 
-    master_host, master_port = ('192.168.64.2', 30542)
+    master_host, master_port = ('192.168.64.2', 31774)
     redis_conf = dict(host=master_host, port=master_port, db=0)
     db = RedisDatabase(redis_conf)
 

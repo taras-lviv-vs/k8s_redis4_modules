@@ -85,6 +85,8 @@ Youtube video from creator of ReJSON `RedisConf17 Deploying the RediSearch Modul
 
 This module (and modules overall) require a Redis 4 build.
 
+N.B.: On timeout, the default behavior is that redisearch return its best effort. (Default timeout is 500ms, see https://oss.redislabs.com/redisearch/Configuring/)
+
 Alpine
 ''''''
 Failed to compile RediSearch module on Alpine 3.8: CC compiler errors.
@@ -136,4 +138,30 @@ Experiments:
  - LUA + cjson
  - RediSearch
 
+Redisearch
+""""""""""
+TODO: performance test should include heavy write/read test, to make sure index rebuilding does not break things down.
+
+Create Index
+''''''''''''
+
+Easy formula:
+::
+        Adding one index adds number of index records equal to the number of data records, so when adding all records takes X time, creating one index takes X time.
+        Creating 2 indexes takes 2*X time, 3 indexes takes 3*X time:
+
+        (ve3.6mac) ➜  cloudscale git:(develop) ✗ time python perf/lua.py --init-db
+        'init db:'
+        python perf/lua.py --init-db  9.25s user 2.50s system 7% cpu 2:36.61 total
+        (ve3.6mac) ➜  cloudscale git:(develop) ✗ time python perf/lua.py --build-id
+        'build id:'
+        python perf/lua.py --build-id  18.66s user 5.19s system 5% cpu 7:35.10 total
+
+Command
+''''''
+
+Run 100 requests in 10 parallel jobs:
+
+::
+        time seq 100 | parallel -j10 'echo {}; time python perf/lua.py --kind=redisearch'
 
