@@ -11,6 +11,7 @@ from string import Template
 
 from vidscale.cloudscale.core.lib.db.redis import RedisDatabase
 
+
 def init_db(db, orgs=100, accounts_per_org=1000):
     key_tmpl = 'account_id:{}:org_id:{}:bigorg'
     json_tmpl = dict(name='default_name',
@@ -32,8 +33,8 @@ def init_db(db, orgs=100, accounts_per_org=1000):
 
             account_id += 1
 
-    # System exit
-    sys.exit(0)
+    return
+
 
 def build_index(db, host, port):
     # build redisearch index
@@ -144,7 +145,7 @@ def run_lua_with_json(db, sort_data=True):
 
         -- function to define sorting by field;
         function cs.compare(elem1, elem2)
-            return elem1:match('"name": "[%a%d ]+"') > elem2:match('"name": "[%a%d ]+"')
+            return elem1['name']:match('[%a%d ]+') > elem2['name']:match('[%a%d ]+')
             -- < ASC
             -- > DESC
         end;
@@ -154,23 +155,24 @@ def run_lua_with_json(db, sort_data=True):
         local results = {};
         for i, key in pairs(keys) do
             local res = redis.call('GET', key)
-            table.insert(results, res)
-        end;
-
-        -- Sorting takes ~60-70% of the whole execution time;
-        -- Compare 40s vs 18s on 100k documents
-        ${sortComment}table.sort(results, cs.compare)
-
-        -- Filter by internal fields;
-        local filtered_results = {};
-        for i, res in pairs(results) do
-            if res:match('"name": "my%a+ %d+"') then
-                table.insert(filtered_results, res)
+            local val = cjson.decode(res)
+            -- Filter by internal fields;
+            if string.match(val["name"], "myaccount %d+") then
+                table.insert(results, val)
             end;
         end;
 
+        -- Sorting takes ??? of the whole execution time;
+        ${sortComment}table.sort(results, cs.compare)
+
         -- OFFSET and LIMIT;
-        return cs.slice(filtered_results, 21, 10)
+        local results_slice = cs.slice(results, 21, 10)
+        local results_json = {}
+        for i, v in pairs(results_slice) do
+            table.insert(results_json, cjson.encode(v))
+        end;
+
+        return results_json
         """
 
     template_obj = Template(template_string)
@@ -184,6 +186,18 @@ def run_lua_with_json(db, sort_data=True):
 
 if __name__ == '__main__':
 
+    from optparse import OptionParser
+    parser = OptionParser()
+    parser.add_option("--init-db", dest="init_db", action="store_true",
+                      help="Init database with data")
+    parser.add_option("--build-id", dest="build_id", action="store_true",
+                      help="Build redisearch index")
+    parser.add_option("--kind", dest="kind",
+                      choices=['lua', 'lua_cjson', 'redisearch',],
+                      help="Test kind")
+
+    (options, args) = parser.parse_args()
+
     #from redis.sentinel import Sentinel
     #sentinel = Sentinel([('192.168.64.2', 30001)], socket_timeout=0.1)
     #master_host, master_port = sentinel.discover_master('mymaster')
@@ -191,20 +205,36 @@ if __name__ == '__main__':
     master_host, master_port = ('192.168.64.2', 30542)
     redis_conf = dict(host=master_host, port=master_port, db=0)
     db = RedisDatabase(redis_conf)
-    #init_db(db.redis)
 
-    t1 = time.time()
-    pprint.pprint('lua:')
-    results = run_lua(db, sort_data=True)
-    pprint.pprint(results)
-    pprint.pprint('LUA taken {}s'.format(time.time() - t1))
+    if options.init_db:
+        pprint.pprint('init db:')
+        init_db(db.redis)
 
-    t2 = time.time()
+    if options.build_id:
+        pprint.pprint('build id:')
+        build_index(db, master_host, master_port)
 
-    pprint.pprint('redisearch:')
-    #build_index(db, master_host, master_port)
-    results = run_rs_query(db, sort_data=True)
-    pprint.pprint(results)
-    pprint.pprint('Redisearch taken {}s'.format(time.time() - t2))
+    if options.kind == 'lua_cjson':
+        t1 = time.time()
 
+        pprint.pprint('lua with cjson:')
+        results = run_lua_with_json(db, sort_data=True)
+        pprint.pprint(results)
+        pprint.pprint('LUA cjson taken {}s'.format(time.time() - t1))
+
+    if options.kind == 'redisearch':
+        t2 = time.time()
+
+        pprint.pprint('redisearch:')
+        results = run_rs_query(db, sort_data=True)
+        pprint.pprint(results)
+        pprint.pprint('Redisearch taken {}s'.format(time.time() - t2))
+
+    if options.kind == 'lua':
+        t3 = time.time()
+
+        pprint.pprint('lua:')
+        results = run_lua(db, sort_data=True)
+        pprint.pprint(results)
+        pprint.pprint('LUA taken {}s'.format(time.time() - t3))
 
