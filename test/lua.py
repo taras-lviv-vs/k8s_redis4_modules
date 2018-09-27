@@ -105,10 +105,6 @@ def run_lua(db, sort_data=True):
             table.insert(results, res)
         end;
 
-        -- Sorting takes ~60-70% of the whole execution time;
-        -- Compare 40s vs 18s on 100k documents
-        ${sortComment}table.sort(results, cs.compare)
-
         -- Filter by internal fields;
         local filtered_results = {};
         for i, res in pairs(results) do
@@ -116,6 +112,9 @@ def run_lua(db, sort_data=True):
                 table.insert(filtered_results, res)
             end;
         end;
+
+        -- Sort result
+        ${sortComment}table.sort(filtered_results, cs.compare)
 
         -- OFFSET and LIMIT;
         return cs.slice(filtered_results, 21, 10)

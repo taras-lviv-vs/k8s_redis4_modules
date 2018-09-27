@@ -131,12 +131,52 @@ String or HashMap?
 ------------------
 TBD
 
-Performance Evaluation
-----------------------
+Performance side-by-side
+------------------------
 Experiments:
- - LUA from Vitaliy Y.
+ - LUA initial version
  - LUA + cjson
- - RediSearch
+ - Redisearch
+
+Minikube parameters: memory - 2G, cpus - 2
+
+Experiment parameters:
+ - request time - min/max/avg
+ - number of requests, total
+ - number of parallel clients
+ - CPU, RAM monitoring with 'top' utility on Redis master
+ - 100K documents in redis
+ - 3 redisearch indexes created
+
+Commands:
+ ::
+         time seq 20 | parallel -j8 'echo {}; time python perf/lua.py --kind=redisearch' >& /tmp/out.log &
+         cat /tmp/out.log|grep taken|cut -d' ' -f3|cut -d's' -f1| python -c "import sys; l=[float(r) for r in sys.stdin.readlines()]; print(len(l), min(l), max(l), sum(l)/len(l))"
+
++-------------+-----------------+-------------------------+-------------------------------+----------------------+-----------------+-----------------+
+| Experiment  | Num of requests | Num of parallel clients | Min/max/avg request time, sec | Total exec time, sec | CPU (master), % | RAM (master), % |
++=============+=================+=========================+===============================+======================+=================+=================+
+| LUA         | 10              | 3                       | 39.8 / 138.7 / 80.3           | 270                  | 10              | 8               |
++-------------+-----------------+-------------------------+-------------------------------+----------------------+-----------------+-----------------+
+| LUA & cjson | 10              | 3                       | 38.5 / 129.9 / 68             | 249                  | 10              | 10              |
++-------------+-----------------+-------------------------+-------------------------------+----------------------+-----------------+-----------------+
+| Redisearch  | 10              | 3                       | 0.063 / 0.824 / 0.330         | 2.5                  | 2.7             | 11              |
++-------------+-----------------+-------------------------+-------------------------------+----------------------+-----------------+-----------------+
+
+Side-by-side comparison of more parallel clients (10, 100, ...) does not look practical due to significant advantage of redisearch solution.
+Also, since Redis is single-threaded and does not support parallel queries, it appears that many queries in "LUA" and "LUA + cjson" experiments fail with "BUSY" error: "BUSY Redis is busy running a script". Failure rate column in the table below shows percentage of queries that failed with that error.
+
++-------------+-----------------+-------------------------+-----------------+-------------------------------+----------------------+
+| Experiment  | Num of requests | Num of parallel clients | Failure rate, % | Min/max/avg request time, sec | Total exec time, sec |
++=============+=================+=========================+=================+===============================+======================+
+| LUA         | 20              | 8                       | 20              | 41.06 / 218 / 141.74          | 345                  |
++-------------+-----------------+-------------------------+-----------------+-------------------------------+----------------------+
+| LUA & cjson | 20              | 8                       | 25              | 38.32 / 342.6 / 158.81        | 390                  |
++-------------+-----------------+-------------------------+-----------------+-------------------------------+----------------------+
+| Redisearch  | 20              | 8                       | 0               | 0.141 / 2.211 / 0.779         | 3.4                  |
++-------------+-----------------+-------------------------+-----------------+-------------------------------+----------------------+
+
+From the table above, the default timeout set in the Redisearch module (500ms) is not enough for such dataset. I've reconfigured module by increasing timeout value to 10s, so that the timeout does not occur.
 
 Redisearch
 """"""""""
@@ -160,8 +200,7 @@ Easy formula:
 Command
 ''''''
 
-Run 100 requests in 10 parallel jobs:
-
+Run 100 requests in 10 parallel https://www.gnu.org/software/parallel/man.html jobs:
 ::
         time seq 100 | parallel -j10 'echo {}; time python perf/lua.py --kind=redisearch'
 
