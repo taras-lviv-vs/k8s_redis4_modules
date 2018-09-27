@@ -76,18 +76,20 @@ Cons:
 Secondary Index
 ---------------
 Highlights:
-* What is secondary index? https://redis.io/topics/indexes
-* Natively, Redis only offers *primary key access*.
-* `MySQL vs. Redis <https://db-engines.com/en/system/MySQL%3BRedis>`_ has a note on `RediSearch module <https://oss.redislabs.com/redisearch/>`_ for Secondary Index.
+
+ * What is secondary index? https://redis.io/topics/indexes
+ * Natively, Redis only offers *primary key access*.
+ * `MySQL vs. Redis <https://db-engines.com/en/system/MySQL%3BRedis>`_ has a note on `RediSearch module <https://oss.redislabs.com/redisearch/>`_ for Secondary Index.
 
 RediSearch module
 """""""""""""""""
 Highlights:
-* `Python client <https://github.com/RedisLabs/redisearch-py>`_
-* Youtube video from creator of ReJSON `RedisConf17 Deploying the RediSearch Module at Scale & an Intro to the ReJSON module - Itamar Haber <https://www.youtube.com/watch?v=MDnHFWTxDPQ>`_
-* `RedisConf17 Slides <https://www.slideshare.net/RedisLabs/redisconf17-searching-billions-of-documents-with-redis>`_
-* This module (and modules overall) require a Redis 4 build.
-* N.B.: On timeout, the default behavior is that redisearch return its best effort. (Default timeout is 500ms, see https://oss.redislabs.com/redisearch/Configuring/)
+
+ * `Python client <https://github.com/RedisLabs/redisearch-py>`_
+ * Youtube video from creator of ReJSON `RedisConf17 Deploying the RediSearch Module at Scale & an Intro to the ReJSON module - Itamar Haber <https://www.youtube.com/watch?v=MDnHFWTxDPQ>`_
+ * `RedisConf17 Slides <https://www.slideshare.net/RedisLabs/redisconf17-searching-billions-of-documents-with-redis>`_
+ * This module (and modules overall) require a Redis 4 build.
+ * N.B.: On timeout, the default behavior is that redisearch return its best effort. (Default timeout is 500ms, see https://oss.redislabs.com/redisearch/Configuring/)
 
 Alpine
 ''''''
