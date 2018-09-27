@@ -121,9 +121,6 @@ This require 2 dockerfiles for building:
 1) redislabsmodules/rmbuilder for building redisearch.so. This produces ~625MB image;
 2) Debian 9 or Ubuntu 18.04 (redis server v. 4.0.9) for production environment;
 
-
-# EOF
-
 Transactions
 ------------
 For transactions support and pipelining: https://github.com/RedisLabs/redis-py
@@ -143,6 +140,7 @@ Experiments:
 Minikube parameters: memory - 2G, cpus - 2
 
 Experiment parameters:
+ - `Performance test script <https://github.com/taras-lviv-vs/k8s_redis4_modules/blob/master/test/lua.py>`_
  - request time - min/max/avg
  - number of requests, total
  - number of parallel clients
