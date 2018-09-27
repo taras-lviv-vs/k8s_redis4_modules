@@ -18,7 +18,7 @@ Overview
 --------
 Documents are stored as serialized JSON strings at specific keys.  CloudScale applications would GET the entire JSON string, deserialize it, manipulate it, re-serialize and SET it again at the application. This is an anti-pattern.
 
-See `JSON storage<https://redislabs.com/redis-best-practices/data-storage-patterns/json-storage/>`_
+See `JSON storage <https://redislabs.com/redis-best-practices/data-storage-patterns/json-storage/>`_
 
 Method 1
 """"""""
@@ -37,13 +37,15 @@ Method 2
 """"""""
 Redis 4.0+ have the ability to use modules in the form of binary shared objects (\*.so). Shared objects are loaded into Redis process during initialization and their logic is available immediately after Redis is started.
 
-Let's consider `ReJSON <https://github.com/RedisLabsModules/rejson>`_
-Intro page: https://oss.redislabs.com/rejson/
-The list of commands that exposes ReJSON: https://oss.redislabs.com/rejson/commands/
-ReJSON does not support complex query logic: `does rejson in redis support complex get query?<https://stackoverflow.com/questions/47518725/does-rejson-in-redis-support-complex-get-query>`_
+Let's consider `ReJSON <https://github.com/RedisLabsModules/rejson>`_:
+
+* Intro page: https://oss.redislabs.com/rejson/
+* The list of commands that exposes ReJSON: https://oss.redislabs.com/rejson/commands/
+* ReJSON does not support complex query logic: `does rejson in redis support complex get query? <https://stackoverflow.com/questions/47518725/does-rejson-in-redis-support-complex-get-query>`_
 
 Current Redis version is:
 ::
+
         $ redis-server -v
         Redis server v=3.2.3 sha=00000000:0 malloc=jemalloc-3.6.0 bits=64 build=cd30fb367b05f482
 
@@ -75,13 +77,13 @@ Secondary Index
 ---------------
 What is secondary index? https://redis.io/topics/indexes
 Natively, Redis only offers *primary key access*.
-`MySQL vs. Redis<https://db-engines.com/en/system/MySQL%3BRedis>`_ has a note on `RediSearch module<https://oss.redislabs.com/redisearch/>`_ for Secondary Index.
+`MySQL vs. Redis <https://db-engines.com/en/system/MySQL%3BRedis>`_ has a note on `RediSearch module <https://oss.redislabs.com/redisearch/>`_ for Secondary Index.
 
 RediSearch module
 """""""""""""""""
-`Python client<https://github.com/RedisLabs/redisearch-py>`_
-Youtube video from creator of ReJSON `RedisConf17 Deploying the RediSearch Module at Scale & an Intro to the ReJSON module - Itamar Haber<https://www.youtube.com/watch?v=MDnHFWTxDPQ>`_
-`RedisConf17 Slides<https://www.slideshare.net/RedisLabs/redisconf17-searching-billions-of-documents-with-redis>`_
+`Python client <https://github.com/RedisLabs/redisearch-py>`_
+Youtube video from creator of ReJSON `RedisConf17 Deploying the RediSearch Module at Scale & an Intro to the ReJSON module - Itamar Haber <https://www.youtube.com/watch?v=MDnHFWTxDPQ>`_
+`RedisConf17 Slides <https://www.slideshare.net/RedisLabs/redisconf17-searching-billions-of-documents-with-redis>`_
 
 This module (and modules overall) require a Redis 4 build.
 
@@ -150,6 +152,7 @@ Experiment parameters:
 
 Commands:
  ::
+
          time seq 20 | parallel -j8 'echo {}; time python perf/lua.py --kind=redisearch' >& /tmp/out.log &
          cat /tmp/out.log|grep taken|cut -d' ' -f3|cut -d's' -f1| python -c "import sys; l=[float(r) for r in sys.stdin.readlines()]; print(len(l), min(l), max(l), sum(l)/len(l))"
 
@@ -187,6 +190,7 @@ Create Index
 
 Easy formula:
 ::
+
         Adding one index adds number of index records equal to the number of data records, so when adding all records takes X time, creating one index takes X time.
         Creating 2 indexes takes 2*X time, 3 indexes takes 3*X time:
 
@@ -202,5 +206,6 @@ Command
 
 Run 100 requests in 10 parallel https://www.gnu.org/software/parallel/man.html jobs:
 ::
+
         time seq 100 | parallel -j10 'echo {}; time python perf/lua.py --kind=redisearch'
 
