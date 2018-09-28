@@ -1,6 +1,7 @@
 import copy
 import json
 import pprint
+import random
 import sys
 import time
 
@@ -36,7 +37,7 @@ def init_db(db, orgs=100, accounts_per_org=1000):
     return
 
 
-def build_index(db, host, port):
+def build_index(db):
     # build redisearch index
     keys = db.redis.keys('account_id:*')
     if not keys:
@@ -56,6 +57,48 @@ def build_index(db, host, port):
                             name_sortable=doc['name'],
                             desc_unsortable=doc['desc'],
                             info_nostem=doc['info'])
+
+def update_documents_random(db, interval_sec=20):
+    keys = db.redis.keys('account_id:*')
+    if not keys:
+        return
+
+    #import pdb; pdb.set_trace()
+
+    t0 = time.time()
+    key_max = len(keys) - 1
+    updated_keys = 0
+
+    while time.time() - t0 < interval_sec:
+        key = keys[random.randint(0, key_max)]
+        rs_doc_key = '_id:{}'.format(key)
+
+        # create pipeline: https://github.com/RedisLabs/redis-py#pipelines
+        pipe = db.redis.pipeline()
+
+        # watch command: https://github.com/andymccurdy/redis-py/issues/563#issuecomment-65458542
+        pipe.watch(key, rs_doc_key)
+
+        # load the full document
+        doc_string = pipe.get(key)
+        doc = json.loads(doc_string)
+
+        # update field value
+        doc['name'] = '{}0'.format(doc['name'])
+
+        # pipe multi puts it to buffered mode
+        pipe.multi()
+        pipe.set(key, json.dumps(doc))
+
+        client = redisearch.Client('rsIndex', conn=pipe)
+        # index the document
+        client.add_document(rs_doc_key,
+                            replace=True,
+                            name_sortable=doc['name'])
+        pipe.execute()
+        updated_keys += 1
+
+    return updated_keys
 
 def run_rs_query(db, sort_data=True):
     #client.search(redisearch.Query('@name_sortable:myaccount').sort_by('name_sortable', asc=True).paging(0, 20)).docs
@@ -192,7 +235,7 @@ if __name__ == '__main__':
     parser.add_option("--build-id", dest="build_id", action="store_true",
                       help="Build redisearch index")
     parser.add_option("--kind", dest="kind",
-                      choices=['lua', 'lua_cjson', 'redisearch',],
+                      choices=['lua', 'lua_cjson', 'redisearch', 'update_docs',],
                       help="Test kind")
 
     (options, args) = parser.parse_args()
@@ -201,7 +244,7 @@ if __name__ == '__main__':
     #sentinel = Sentinel([('192.168.64.2', 30001)], socket_timeout=0.1)
     #master_host, master_port = sentinel.discover_master('mymaster')
 
-    master_host, master_port = ('192.168.64.2', 31774)
+    master_host, master_port = ('192.168.64.2', 32394)
     redis_conf = dict(host=master_host, port=master_port, db=0)
     db = RedisDatabase(redis_conf)
 
@@ -211,7 +254,7 @@ if __name__ == '__main__':
 
     if options.build_id:
         pprint.pprint('build id:')
-        build_index(db, master_host, master_port)
+        build_index(db)
 
     if options.kind == 'lua_cjson':
         t1 = time.time()
@@ -236,4 +279,11 @@ if __name__ == '__main__':
         results = run_lua(db, sort_data=True)
         pprint.pprint(results)
         pprint.pprint('LUA taken {}s'.format(time.time() - t3))
+
+    if options.kind == 'update_docs':
+        t4 = time.time()
+
+        pprint.pprint('update_docs:')
+        keys = update_documents_random(db)
+        pprint.pprint('Update {} keys taken {}s'.format(keys, time.time() - t4))
 
