@@ -58,7 +58,7 @@ def build_index(db):
                             desc_unsortable=doc['desc'],
                             info_nostem=doc['info'])
 
-def update_documents_random(db, interval_sec=20):
+def update_documents_random(db, interval_sec=90):
     keys = db.redis.keys('account_id:*')
     if not keys:
         return
