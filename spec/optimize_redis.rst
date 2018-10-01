@@ -2,6 +2,8 @@
 Redis Optimizations
 ===================
 
+.. contents::
+
 Limitations
 ===========
 - This specification does not consider optimizations at the level of creating resources, e.g. removing Cerberus-based validation of each resource after reading JSON string from Redis and deserializing it;
