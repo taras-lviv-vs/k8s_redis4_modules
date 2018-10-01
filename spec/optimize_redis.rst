@@ -258,4 +258,4 @@ Request time read vs read-write tests:
 
 The above data plotted in a chart:
 
-.. image:: Request\ time.png
+.. image:: request_time.png
