@@ -102,7 +102,7 @@ Redis 4 should be compiled from the source code.
 
 Ubuntu
 ''''''
-Ubuntu 16.04, 18.04: 33% tests passed, 57 tests failed out of 85
+Ubuntu 16.04, 18.04: 33% tests passed, 57 tests failed out of 85 (when the module is built from the source code). But, the advantage of this distro is that redisearch package is available in 18.04 (LTS), together with redis 4, so building of the image is not required (see https://github.com/taras-lviv-vs/k8s_redis4_modules/blob/master/README.md)
 
 Debian
 ''''''
@@ -128,7 +128,8 @@ CloudScale should do read-update-write in transactions.
 
 String or HashMap?
 ------------------
-TBD
+Redis HashMap does not give any advantage to search functionality (filter, sort, limit, offest), but usage of it would require significant rewrite of the existing code base.
+Also, the same ability to update parts of a document can be obtained by using the ReJSON module of Redis4.
 
 Performance side-by-side
 ------------------------
@@ -257,3 +258,6 @@ Request time read vs read-write tests:
 The above data plotted in a chart:
 
 .. image:: request_time.png
+
+Where, the horizontal axe represents the number of parallel "read" clients, the vertical axe represents request time for the "read" client. "avg1" series is representing read-only requests, and "avg2" is representing read requests with parallel 10 "write" clients, with transactions that force redisearch index rebuild.
+
