@@ -256,3 +256,6 @@ Request time read vs read-write tests:
 	50,4.6381737055778505,17.481606307983398
 	100,6.292673638820649,22.391618380069733
 
+The above data plotted in a chart:
+
+.. image:: Request\ time.png
