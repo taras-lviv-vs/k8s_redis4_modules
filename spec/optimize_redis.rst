@@ -2,7 +2,7 @@
 Redis Optimizations
 ===================
 
-.. contents::
+.. contents:: Table of Contents
 
 Limitations
 ===========
