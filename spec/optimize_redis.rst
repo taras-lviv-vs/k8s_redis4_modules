@@ -2,10 +2,6 @@
 Redis Optimizations
 ===================
 
-TODO
-====
-- Store a string or a hashmap?
-
 Limitations
 ===========
 - This specification does not consider optimizations at the level of creating resources, e.g. removing Cerberus-based validation of each resource after reading JSON string from Redis and deserializing it;
@@ -27,11 +23,11 @@ LUA and cjson. Example of approach is here: https://github.com/RedisLabsModules/
 
 Pros:
 
-- XXX
+- Better data filtering, since it operates on actual JSON
 
 Cons:
 
-- XXX
+- Same as pure LUA scripting
 
 Method 2
 """"""""
